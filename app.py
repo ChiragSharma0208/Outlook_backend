@@ -1,3 +1,4 @@
+import os
 from flask import Flask, redirect, request, jsonify, session 
 from datetime import datetime
 from dotenv import load_dotenv
@@ -90,7 +91,8 @@ def emails():
         return jsonify({"error": str(e)}), 500
     
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=5000)
+
 
 
 
