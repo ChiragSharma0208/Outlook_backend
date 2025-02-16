@@ -1,5 +1,5 @@
 import os
-from flask import Flask, redirect, request, jsonify, session 
+from flask import Flask, redirect, request, jsonify, session, make_response
 from datetime import datetime
 from dotenv import load_dotenv
 import requests
@@ -18,17 +18,6 @@ CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 REDIRECT_URI = os.getenv('REDIRECT_URI')
 FRONTEND = os.getenv('FRONTEND')
 CORS(app, origins=[f"{FRONTEND}"], supports_credentials=True)
-
-# Configure Flask-Session to use filesystem storage
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_USE_SIGNER"] = True
-app.config["SESSION_KEY_PREFIX"] = "flask-session:"
-app.config["SESSION_COOKIE_SECURE"] = True  # Ensures cookies are only sent over HTTPS
-app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevents JavaScript from accessing session cookies
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-
-Session(app)
 
 @app.route("/")
 def home():
@@ -51,28 +40,28 @@ def callback():
         if not access_token:
             return "Error: Access token not found.", 500
 
-        session["access_token"] = access_token
-        
         user_info = get_user_info(access_token)
         user_id = user_info['id']
-        session["user_id"] = user_id
         save_user_info(user_info)
 
         user_emails = get_user_emails(access_token)
         save_user_emails(user_emails, user_id)
 
-        redirect_url = f"{FRONTEND}/dashboard?user_id={user_id}&email={user_info['mail']}"
-        return redirect(redirect_url)
+        response = make_response(redirect(f"{FRONTEND}/dashboard?user_id={user_id}&email={user_info['mail']}"))
+        response.set_cookie("access_token", access_token, httponly=True, secure=True, samesite="Lax")
+        response.set_cookie("user_id", user_id, httponly=True, secure=True, samesite="Lax")
+        
+        return response
     except Exception as e:
         return f"Error exchanging code for token: {str(e)}", 500
     
 @app.route('/update')
 def update():
-    print(session)  # Debugging statement
-    access_token = session.get("access_token")
+    print(request.cookies)  # Debugging statement
+    access_token = request.cookies.get("access_token")
     if not access_token:
         return "Error: Access token not found.", 500
-    user_id = session.get("user_id")
+    user_id = request.cookies.get("user_id")
     if not user_id:
         return "Error: User ID not found.", 500
     user_emails = get_user_emails(access_token)
@@ -85,9 +74,9 @@ def update():
 
 @app.route('/logout', methods=['POST'])
 def logout():
-    session.clear()
     response = jsonify({"message": "Logged out successfully"})
-    response.set_cookie('session', '', expires=0)
+    response.set_cookie("access_token", "", expires=0)
+    response.set_cookie("user_id", "", expires=0)
     return response
 
 @app.route('/emails', methods=['GET'])
