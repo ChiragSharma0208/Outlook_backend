@@ -48,8 +48,8 @@ def callback():
         save_user_emails(user_emails, user_id)
 
         response = make_response(redirect(f"{FRONTEND}/dashboard?user_id={user_id}&email={user_info['mail']}"))
-        response.set_cookie("access_token", access_token, httponly=True, secure=True, samesite="Lax")
-        response.set_cookie("user_id", user_id, httponly=True, secure=True, samesite="Lax")
+        response.set_cookie("access_token", access_token, httponly=False, secure=False, samesite="None")
+        response.set_cookie("user_id", user_id, httponly=False, secure=False, samesite="None")
         
         return response
     except Exception as e:
