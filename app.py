@@ -78,7 +78,10 @@ def logout():
     response.set_cookie("access_token", "", expires=0)
     response.set_cookie("user_id", "", expires=0)
     return response
-
+@app.route("/redirect")
+def redirect_to_frontend():
+    return redirect(FRONTEND)
+    
 @app.route('/emails', methods=['GET'])
 def emails():
     try:
