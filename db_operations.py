@@ -62,3 +62,38 @@ def get_emails(user_id):
         return ({"emails": items})
     except Exception as e:
         return ({"error": str(e)})
+
+
+
+def save_access_token(user_id, access_token, expires_in=3600):
+    client = init_cosmos_client()
+    database = get_or_create_database(client, "UserDatabase")
+    container = get_or_create_container(database, "UserToken", partition_key="/id")
+    item = {
+        "id": user_id, # Cosmos DB requires an 'id' field
+        "user_id": user_id,
+        "access_token": access_token,
+        "expires_at": expires_in 
+    }
+    container.upsert_item(item)
+
+def retrieve_access_token(user_id):
+    client = init_cosmos_client()
+    database = get_or_create_database(client, "UserDatabase")
+    container = get_or_create_container(database, "UserToken", partition_key="/id")
+    query = f"SELECT * FROM c WHERE c.user_id = '{user_id}'"
+    items = list(container.query_items(query=query, enable_cross_partition_query=True))
+    return items[0]["access_token"] if items else None
+
+def delete_access_token():
+    client = init_cosmos_client()
+    database = get_or_create_database(client, "UserDatabase")
+   
+    container = get_or_create_container(database, "UserToken", partition_key="/id")
+    try:
+        
+        for item in container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True):
+            container.delete_item(item, partition_key=item['id'])  
+
+    except exceptions.CosmosHttpResponseError as e:
+       pass
