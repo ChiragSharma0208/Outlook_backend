@@ -70,10 +70,11 @@ def update():
 
 @app.route('/logout', methods=['POST'])
 def logout():
+    user_id = request.args.get("user_id")
     response = jsonify({"message": "Logged out successfully"})
     response.set_cookie("access_token", "", expires=0)
     response.set_cookie("user_id", "", expires=0)
-    delete_access_token()
+    delete_access_token(user_id)
     return response
 @app.route("/redirect")
 def redirect_to_frontend():
