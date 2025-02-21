@@ -73,7 +73,7 @@ def retrieve_access_token(user_id):
         
 
 
-def delete_user_token(user_id):
+def delete_access_token(user_id):
     try:
         container = get_cosmos_resources("UserToken")
         try:
