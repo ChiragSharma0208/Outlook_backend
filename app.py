@@ -3,9 +3,8 @@ from flask import Flask, redirect, request, jsonify, session, make_response
 from datetime import datetime
 from dotenv import load_dotenv
 import requests
-from flask_cors import CORS 
-from flask_session import Session
-from db_operations import save_user_info, save_user_emails, get_emails
+from flask_cors import CORS
+from db_operations import save_user_info, save_user_emails, get_emails,save_access_token, retrieve_access_token, delete_access_token
 from auth.oauth2 import get_access_token, get_user_info, get_user_emails  
 
 load_dotenv()
@@ -42,7 +41,9 @@ def callback():
 
         user_info = get_user_info(access_token)
         user_id = user_info['id']
+        
         save_user_info(user_info)
+        save_access_token(user_id, access_token)
 
         user_emails = get_user_emails(access_token)
         save_user_emails(user_emails, user_id)
@@ -57,13 +58,8 @@ def callback():
     
 @app.route('/update')
 def update():
-    print(request.cookies)  # Debugging statement
-    access_token = request.cookies.get("access_token")
-    if not access_token:
-        return "Error: Access token not found.", 500
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        return "Error: User ID not found.", 500
+    user_id=request.args.get("user_id")
+    access_token=retrieve_access_token(user_id)
     user_emails = get_user_emails(access_token)
     save_user_emails(user_emails, user_id)
     try:
@@ -77,6 +73,7 @@ def logout():
     response = jsonify({"message": "Logged out successfully"})
     response.set_cookie("access_token", "", expires=0)
     response.set_cookie("user_id", "", expires=0)
+    delete_access_token()
     return response
 @app.route("/redirect")
 def redirect_to_frontend():
