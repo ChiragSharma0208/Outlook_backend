@@ -1,4 +1,5 @@
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
+from azure.cosmos.exceptions import CosmosResourceNotFoundError, CosmosHttpResponseError
 import os
 
 def init_cosmos_client():
@@ -70,12 +71,20 @@ def retrieve_access_token(user_id):
     except exceptions.CosmosHttpResponseError as e:
         return None
         
-def delete_access_token(user_id):
+
+
+def delete_user_token(user_id):
     try:
         container = get_cosmos_resources("UserToken")
+        try:
+            container.read_item(user_id, partition_key=user_id)
+        except CosmosResourceNotFoundError:
+            return {"status": "error", "message": "Token not found"}
         container.delete_item(user_id, partition_key=user_id)
         return {"status": "success", "message": "Token deleted"}
-    except exceptions.CosmosResourceNotFoundError:
-        return {"status": "error", "message": "Token not found"}
-    except exceptions.CosmosHttpResponseError as e:
-        return {"status": "error", "message": str(e)}
+    
+    except CosmosHttpResponseError as e:
+        return {"status": "error", "message": f"HTTP Error: {str(e)}"}
+    except Exception as e:
+        return {"status": "error", "message": f"Unexpected error: {str(e)}"}
+
